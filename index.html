@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rally Académico</title>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <!-- Firebase App (el núcleo de Firebase SDK) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <!-- Firebase Firestore -->
@@ -75,6 +74,7 @@
             display: inline-block;
             text-align: center;
             text-decoration: none;
+            margin: 5px;
         }
         
         .btn:hover {
@@ -107,7 +107,7 @@
             font-weight: bold;
         }
         
-        input, select {
+        input, select, textarea {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
@@ -202,22 +202,6 @@
             color: var(--dark);
         }
         
-        .qr-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-            margin: 20px 0;
-        }
-        
-        .qr-item {
-            text-align: center;
-        }
-        
-        .qr-code {
-            margin: 10px 0;
-        }
-        
         table {
             width: 100%;
             border-collapse: collapse;
@@ -272,6 +256,20 @@
             margin-top: 30px;
             color: #7f8c8d;
             font-size: 14px;
+        }
+        
+        .link-display {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            word-break: break-all;
+            font-family: monospace;
+        }
+        
+        .teacher-panel {
+            max-height: 600px;
+            overflow-y: auto;
         }
         
         @media (max-width: 768px) {
@@ -358,6 +356,22 @@
             <button id="next-station" class="btn">Continuar</button>
         </div>
 
+        <!-- Pantalla de finalización -->
+        <div id="finish-screen" class="card hidden">
+            <h2>Finalizar Rally</h2>
+            <p>Ingresa la información de tu equipo para registrar tu tiempo de finalización:</p>
+            <div class="form-group">
+                <label for="finish-team-number">Número de Equipo</label>
+                <input type="number" id="finish-team-number" min="1" placeholder="Ingresa tu número de equipo">
+            </div>
+            <div class="form-group">
+                <label for="finish-team-key">Clave de Equipo</label>
+                <input type="password" id="finish-team-key" placeholder="Ingresa tu clave de equipo">
+            </div>
+            <button id="finish-team" class="btn btn-success">Registrar Tiempo Final</button>
+            <p id="finish-message" class="hidden" style="margin-top: 15px; padding: 10px; border-radius: 4px;"></p>
+        </div>
+
         <!-- Login de Administrador -->
         <div id="admin-login" class="card admin-login hidden">
             <h2>Acceso Administrador</h2>
@@ -366,7 +380,7 @@
                 <input type="password" id="admin-password" placeholder="Ingresa la contraseña">
             </div>
             <button id="admin-login-btn" class="btn">Acceder</button>
-            <button id="back-to-welcome" class="btn" style="margin-top: 10px; background-color: #7f8c8d;">Volver</button>
+            <button id="back-to-welcome" class="btn" style="background-color: #7f8c8d;">Volver</button>
             <p id="admin-login-message" class="hidden" style="margin-top: 15px; padding: 10px; border-radius: 4px;"></p>
         </div>
 
@@ -376,35 +390,37 @@
             
             <div class="admin-panel">
                 <h3>Control del Rally</h3>
+                <div class="timer" id="admin-timer">00:00:00</div>
                 <button id="start-timer" class="btn">Iniciar Cronómetro</button>
+                <button id="stop-timer" class="btn">Detener Cronómetro</button>
+                <button id="reset-timer" class="btn">Reiniciar Cronómetro</button>
                 <button id="reset-rally" class="btn btn-danger">Reiniciar Rally</button>
                 <button id="logout-admin" class="btn" style="background-color: #7f8c8d;">Cerrar Sesión</button>
             </div>
             
             <div class="admin-panel">
-                <h3>Simulación de Estaciones</h3>
-                <p>Prueba las estaciones como administrador:</p>
-                <div class="simulation-buttons">
-                    <button onclick="simulateStation(1)" class="btn">Estación 1</button>
-                    <button onclick="simulateStation(2)" class="btn">Estación 2</button>
-                    <button onclick="simulateStation(3)" class="btn">Estación 3</button>
-                    <button onclick="simulateStation(4)" class="btn">Estación 4</button>
-                    <button onclick="simulateStation(5)" class="btn">Estación 5</button>
-                    <button onclick="simulateStation(6)" class="btn">Estación 6</button>
-                    <button onclick="simulateStation(7)" class="btn">Estación 7</button>
-                    <button onclick="simulateStation(8)" class="btn">Estación 8</button>
-                    <button onclick="simulateStation(9)" class="btn">Estación 9</button>
-                    <button onclick="simulateStation(10)" class="btn">Estación 10</button>
+                <h3>Links de Estaciones</h3>
+                <button id="generate-links" class="btn">Generar Links</button>
+                <table id="links-table" class="hidden">
+                    <thead>
+                        <tr>
+                            <th>Estación</th>
+                            <th>Link</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Los links se generarán dinámicamente -->
+                    </tbody>
+                </table>
+                <div id="links-concatenated" class="hidden">
+                    <h4>Links concatenados:</h4>
+                    <p id="links-string" class="link-display"></p>
                 </div>
             </div>
-            
+
             <div class="admin-panel">
-                <h3>Generador de Códigos QR</h3>
-                <p>Genera los códigos QR para cada estación:</p>
-                <div class="qr-container" id="qr-container">
-                    <!-- Los QR se generarán dinámicamente -->
-                </div>
-                <button id="generate-all-qr" class="btn">Generar Todos los QR</button>
+                <h3>Link de Finalización</h3>
+                <p id="finish-link" class="link-display"></p>
             </div>
             
             <div class="admin-panel">
@@ -421,6 +437,66 @@
                     </thead>
                     <tbody>
                         <!-- Los resultados se cargarán dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="admin-panel">
+                <h3>Gestión de Equipos</h3>
+                <button id="manage-teams" class="btn">Gestionar Equipos</button>
+                <div id="teams-management" class="hidden">
+                    <h4>Agregar/Editar Equipo</h4>
+                    <div class="form-group">
+                        <label for="team-id">Número de Equipo</label>
+                        <input type="number" id="team-id" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="team-key-input">Clave del Equipo</label>
+                        <input type="text" id="team-key-input">
+                    </div>
+                    <button id="save-team" class="btn">Guardar Equipo</button>
+                    <button id="delete-team" class="btn btn-danger">Eliminar Equipo</button>
+                    <h4>Lista de Equipos</h4>
+                    <table id="teams-table">
+                        <thead>
+                            <tr>
+                                <th>Número</th>
+                                <th>Clave</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Los equipos se cargarán dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="admin-panel">
+                <h3>Vista de Docentes</h3>
+                <button id="view-teacher" class="btn">Acceder a Vista de Docentes</button>
+            </div>
+        </div>
+
+        <!-- Vista de Docentes -->
+        <div id="teacher-panel" class="card hidden">
+            <h2>Vista de Docentes</h2>
+            <button id="refresh-teacher" class="btn">Actualizar Datos</button>
+            <button id="back-to-admin-from-teacher" class="btn">Volver al Panel de Administración</button>
+            <div class="teacher-panel">
+                <table id="teacher-table">
+                    <thead>
+                        <tr>
+                            <th>Equipo</th>
+                            <th>Estación</th>
+                            <th>Pregunta</th>
+                            <th>Respuesta</th>
+                            <th>Correcta</th>
+                            <th>Castigo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Los datos se cargarán dinámicamente -->
                     </tbody>
                 </table>
             </div>
@@ -451,11 +527,13 @@
         let currentStation = 1;
         let currentQuestion = null;
         let selectedOption = null;
-        let startTime = null;
-        let timerInterval = null;
         let teamAnswers = {};
         let adminAuthenticated = false;
-        let isAdminSimulation = false;
+        let stationKeys = {}; // Mapeo de estación a clave
+        let globalTimer = null; // Cronómetro global
+        let timerRunning = false;
+        let timerStart = null;
+        let timerValue = 0;
 
         // Referencias a elementos DOM
         const welcomeScreen = document.getElementById('welcome-screen');
@@ -463,8 +541,10 @@
         const questionScreen = document.getElementById('question-screen');
         const teamRegistration = document.getElementById('team-registration');
         const confirmationScreen = document.getElementById('confirmation-screen');
+        const finishScreen = document.getElementById('finish-screen');
         const adminLogin = document.getElementById('admin-login');
         const adminPanel = document.getElementById('admin-panel');
+        const teacherPanel = document.getElementById('teacher-panel');
         const stationNumber = document.getElementById('station-number');
         const questionStation = document.getElementById('question-station');
         const cardsContainer = document.getElementById('cards-container');
@@ -476,49 +556,403 @@
         const registerTeam = document.getElementById('register-team');
         const registrationMessage = document.getElementById('registration-message');
         const nextStation = document.getElementById('next-station');
+        const finishTeamNumber = document.getElementById('finish-team-number');
+        const finishTeamKey = document.getElementById('finish-team-key');
+        const finishTeamBtn = document.getElementById('finish-team');
+        const finishMessage = document.getElementById('finish-message');
         const adminAccessBtn = document.getElementById('admin-access-btn');
         const adminPasswordInput = document.getElementById('admin-password');
         const adminLoginBtn = document.getElementById('admin-login-btn');
         const adminLoginMessage = document.getElementById('admin-login-message');
         const backToWelcome = document.getElementById('back-to-welcome');
-        const startTimer = document.getElementById('start-timer');
+        const startTimerBtn = document.getElementById('start-timer');
+        const stopTimerBtn = document.getElementById('stop-timer');
+        const resetTimerBtn = document.getElementById('reset-timer');
         const resetRally = document.getElementById('reset-rally');
         const logoutAdmin = document.getElementById('logout-admin');
-        const generateAllQr = document.getElementById('generate-all-qr');
-        const qrContainer = document.getElementById('qr-container');
+        const generateLinks = document.getElementById('generate-links');
+        const linksTable = document.getElementById('links-table');
+        const linksTableBody = linksTable.querySelector('tbody');
+        const linksConcatenated = document.getElementById('links-concatenated');
+        const linksString = document.getElementById('links-string');
+        const finishLink = document.getElementById('finish-link');
         const viewResults = document.getElementById('view-results');
         const resultsTable = document.getElementById('results-table');
+        const manageTeams = document.getElementById('manage-teams');
+        const teamsManagement = document.getElementById('teams-management');
+        const teamIdInput = document.getElementById('team-id');
+        const teamKeyInputManagement = document.getElementById('team-key-input');
+        const saveTeam = document.getElementById('save-team');
+        const deleteTeamBtn = document.getElementById('delete-team');
+        const teamsTable = document.getElementById('teams-table');
+        const viewTeacher = document.getElementById('view-teacher');
+        const refreshTeacher = document.getElementById('refresh-teacher');
+        const backToAdminFromTeacher = document.getElementById('back-to-admin-from-teacher');
+        const teacherTable = document.getElementById('teacher-table');
 
         // Event Listeners
         submitAnswer.addEventListener('click', handleAnswerSubmission);
         registerTeam.addEventListener('click', handleTeamRegistration);
         nextStation.addEventListener('click', handleNextStation);
+        finishTeamBtn.addEventListener('click', handleFinish);
         adminAccessBtn.addEventListener('click', showAdminLogin);
         adminLoginBtn.addEventListener('click', handleAdminLogin);
         backToWelcome.addEventListener('click', backToWelcomeScreen);
-        startTimer.addEventListener('click', startGlobalTimer);
+        startTimerBtn.addEventListener('click', startGlobalTimer);
+        stopTimerBtn.addEventListener('click', stopGlobalTimer);
+        resetTimerBtn.addEventListener('click', resetGlobalTimer);
         resetRally.addEventListener('click', resetRallyData);
         logoutAdmin.addEventListener('click', logoutAdminPanel);
-        generateAllQr.addEventListener('click', generateAllQRs);
+        generateLinks.addEventListener('click', generateStationLinks);
         viewResults.addEventListener('click', showResults);
-
-        // Funciones principales
+        manageTeams.addEventListener('click', showTeamsManagement);
+        saveTeam.addEventListener('click', saveTeamData);
+        deleteTeamBtn.addEventListener('click', deleteTeamData);
+        viewTeacher.addEventListener('click', showTeacherPanel);
+        refreshTeacher.addEventListener('click', refreshTeacherData);
+        backToAdminFromTeacher.addEventListener('click', backToAdminFromTeacherPanel);
 
         // Verificar parámetros de URL al cargar la página
         window.addEventListener('load', () => {
             const urlParams = new URLSearchParams(window.location.search);
-            const stationParam = urlParams.get('station');
-            
-            if (stationParam) {
-                currentStation = parseInt(stationParam);
-                if (currentStation >= 1 && currentStation <= 10) {
+            const stationKey = urlParams.get('s');
+            const finish = urlParams.get('finish');
+
+            if (stationKey) {
+                // Buscar la estación correspondiente a la clave
+                const station = getStationFromKey(stationKey);
+                if (station) {
+                    currentStation = station;
                     showQuestionSelection();
                 } else {
-                    alert('Estación no válida. Debe ser entre 1 y 10.');
+                    alert('Estación no válida.');
                 }
+            } else if (finish) {
+                showFinishScreen();
             }
         });
 
+        // Función para generar una clave aleatoria
+        function generateRandomKey(length = 8) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // Generar claves para las estaciones
+        function generateStationKeys() {
+            stationKeys = {};
+            for (let i = 1; i <= 10; i++) {
+                stationKeys[i] = generateRandomKey();
+            }
+            return stationKeys;
+        }
+
+        // Obtener estación desde la clave
+        function getStationFromKey(key) {
+            for (const [station, stationKey] of Object.entries(stationKeys)) {
+                if (stationKey === key) {
+                    return parseInt(station);
+                }
+            }
+            return null;
+        }
+
+        // Generar links de estaciones
+        function generateStationLinks() {
+            const keys = generateStationKeys();
+            const baseUrl = window.location.origin + window.location.pathname;
+            linksTableBody.innerHTML = '';
+            let allLinks = [];
+
+            for (let i = 1; i <= 10; i++) {
+                const key = keys[i];
+                const link = `${baseUrl}?s=${key}`;
+                allLinks.push(link);
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${i}</td>
+                    <td><span class="link-display">${link}</span></td>
+                `;
+                linksTableBody.appendChild(row);
+            }
+
+            linksTable.classList.remove('hidden');
+            linksConcatenated.classList.remove('hidden');
+            linksString.textContent = allLinks.join(',');
+            finishLink.textContent = `${baseUrl}?finish=true`;
+        }
+
+        // Cronómetro global
+        function startGlobalTimer() {
+            if (timerRunning) return;
+            
+            // Iniciar el cronómetro visual
+            timerStart = Date.now() - timerValue;
+            globalTimer = setInterval(updateTimer, 1000);
+            timerRunning = true;
+            
+            // Actualizar tiempo en todos los equipos
+            db.collection('teams').get()
+                .then(querySnapshot => {
+                    const batch = db.batch();
+                    querySnapshot.forEach(doc => {
+                        const teamRef = db.collection('teams').doc(doc.id);
+                        batch.update(teamRef, {
+                            startTime: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    });
+                    return batch.commit();
+                })
+                .then(() => {
+                    console.log('Cronómetro iniciado para todos los equipos');
+                })
+                .catch(error => {
+                    console.error('Error iniciando cronómetro:', error);
+                });
+        }
+
+        function stopGlobalTimer() {
+            if (!timerRunning) return;
+            clearInterval(globalTimer);
+            timerRunning = false;
+        }
+
+        function resetGlobalTimer() {
+            stopGlobalTimer();
+            timerValue = 0;
+            updateTimerDisplay();
+        }
+
+        function updateTimer() {
+            timerValue = Date.now() - timerStart;
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const seconds = Math.floor(timerValue / 1000) % 60;
+            const minutes = Math.floor(timerValue / (1000 * 60)) % 60;
+            const hours = Math.floor(timerValue / (1000 * 60 * 60));
+            document.getElementById('admin-timer').textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // Vista de finalización
+        function showFinishScreen() {
+            hideAllScreens();
+            finishScreen.classList.remove('hidden');
+        }
+
+        function handleFinish() {
+            const teamNumber = finishTeamNumber.value;
+            const teamKey = finishTeamKey.value;
+
+            if (!teamNumber || !teamKey) {
+                showFinishMessage('Por favor ingresa número y clave de equipo', 'error');
+                return;
+            }
+
+            db.collection('teams').doc(teamNumber).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        const teamData = doc.data();
+                        if (teamData.key === teamKey) {
+                            // Registrar tiempo de fin
+                            return db.collection('teams').doc(teamNumber).update({
+                                finishTime: firebase.firestore.FieldValue.serverTimestamp(),
+                                completed: true
+                            });
+                        } else {
+                            showFinishMessage('Clave de equipo incorrecta', 'error');
+                            throw new Error('Credenciales incorrectas');
+                        }
+                    } else {
+                        showFinishMessage('Número de equipo no encontrado', 'error');
+                        throw new Error('Equipo no encontrado');
+                    }
+                })
+                .then(() => {
+                    showFinishMessage('Tiempo de finalización registrado correctamente', 'success');
+                })
+                .catch(error => {
+                    if (error.message !== 'Credenciales incorrectas' && error.message !== 'Equipo no encontrado') {
+                        console.error('Error registrando tiempo de fin:', error);
+                        showFinishMessage('Error al registrar el tiempo de fin', 'error');
+                    }
+                });
+        }
+
+        function showFinishMessage(message, type) {
+            finishMessage.textContent = message;
+            finishMessage.style.backgroundColor = type === 'error' ? '#ffebee' : '#e8f5e8';
+            finishMessage.style.color = type === 'error' ? '#c62828' : '#2e7d32';
+            finishMessage.style.border = type === 'error' ? '1px solid #f44336' : '1px solid #4caf50';
+            finishMessage.classList.remove('hidden');
+        }
+
+        // Gestión de equipos
+        function showTeamsManagement() {
+            teamsManagement.classList.toggle('hidden');
+            if (!teamsManagement.classList.contains('hidden')) {
+                loadTeams();
+            }
+        }
+
+        function loadTeams() {
+            db.collection('teams').get()
+                .then(snapshot => {
+                    const tbody = teamsTable.querySelector('tbody');
+                    tbody.innerHTML = '';
+                    snapshot.forEach(doc => {
+                        const team = doc.data();
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${doc.id}</td>
+                            <td>${team.key}</td>
+                            <td>
+                                <button onclick="editTeam('${doc.id}', '${team.key}')" class="btn">Editar</button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error cargando equipos:', error);
+                });
+        }
+
+        function editTeam(id, key) {
+            teamIdInput.value = id;
+            teamKeyInputManagement.value = key;
+        }
+
+        function saveTeamData() {
+            const id = teamIdInput.value;
+            const key = teamKeyInputManagement.value;
+
+            if (!id || !key) {
+                alert('Por favor ingresa número y clave de equipo');
+                return;
+            }
+
+            const teamData = {
+                key: key,
+                answers: {},
+                startTime: null,
+                finishTime: null,
+                completed: false
+            };
+
+            db.collection('teams').doc(id).set(teamData)
+                .then(() => {
+                    alert('Equipo guardado correctamente');
+                    loadTeams();
+                    teamIdInput.value = '';
+                    teamKeyInputManagement.value = '';
+                })
+                .catch(error => {
+                    console.error('Error guardando equipo:', error);
+                    alert('Error al guardar el equipo');
+                });
+        }
+
+        function deleteTeamData() {
+            const id = teamIdInput.value;
+            if (!id) {
+                alert('Por favor ingresa un número de equipo');
+                return;
+            }
+
+            if (!confirm(`¿Estás seguro de que quieres eliminar el equipo ${id}?`)) {
+                return;
+            }
+
+            db.collection('teams').doc(id).delete()
+                .then(() => {
+                    alert('Equipo eliminado correctamente');
+                    loadTeams();
+                    teamIdInput.value = '';
+                    teamKeyInputManagement.value = '';
+                })
+                .catch(error => {
+                    console.error('Error eliminando equipo:', error);
+                    alert('Error al eliminar el equipo');
+                });
+        }
+
+        // Vista de docentes
+        function showTeacherPanel() {
+            hideAllScreens();
+            teacherPanel.classList.remove('hidden');
+            refreshTeacherData();
+        }
+
+        function refreshTeacherData() {
+            db.collection('teams').get()
+                .then(snapshot => {
+                    const tbody = teacherTable.querySelector('tbody');
+                    tbody.innerHTML = '';
+                    
+                    // Crear un array de promesas para cargar todas las preguntas
+                    const promises = [];
+                    
+                    snapshot.forEach(doc => {
+                        const team = doc.data();
+                        const teamNumber = doc.id;
+                        if (team.answers) {
+                            Object.entries(team.answers).forEach(([station, answer]) => {
+                                // Cargar la pregunta para obtener el texto
+                                const promise = db.collection('questions').doc(answer.questionId).get()
+                                    .then(questionDoc => {
+                                        const question = questionDoc.data();
+                                        const row = document.createElement('tr');
+                                        row.innerHTML = `
+                                            <td>${teamNumber}</td>
+                                            <td>${station}</td>
+                                            <td>${question.text}</td>
+                                            <td>${question.options[answer.selectedOption]}</td>
+                                            <td>${answer.isCorrect ? 'Sí' : 'No'}</td>
+                                            <td>${answer.punishment || 'N/A'}</td>
+                                        `;
+                                        tbody.appendChild(row);
+                                    })
+                                    .catch(error => {
+                                        console.error('Error cargando pregunta:', error);
+                                        // Crear una fila con información limitada si no se puede cargar la pregunta
+                                        const row = document.createElement('tr');
+                                        row.innerHTML = `
+                                            <td>${teamNumber}</td>
+                                            <td>${station}</td>
+                                            <td>Información no disponible</td>
+                                            <td>Opción ${answer.selectedOption + 1}</td>
+                                            <td>${answer.isCorrect ? 'Sí' : 'No'}</td>
+                                            <td>${answer.punishment || 'N/A'}</td>
+                                        `;
+                                        tbody.appendChild(row);
+                                    });
+                                promises.push(promise);
+                            });
+                        }
+                    });
+                    
+                    // Esperar a que todas las promesas se resuelvan
+                    return Promise.all(promises);
+                })
+                .catch(error => {
+                    console.error('Error cargando datos de equipos:', error);
+                });
+        }
+
+        function backToAdminFromTeacherPanel() {
+            hideAllScreens();
+            adminPanel.classList.remove('hidden');
+        }
+
+        // Funciones existentes para el flujo de preguntas
         function showQuestionSelection() {
             hideAllScreens();
             questionSelection.classList.remove('hidden');
@@ -540,116 +974,104 @@
             }
         }
 
-function selectQuestion(questionSet) {
-    console.log(`🎯 Cargando todas las preguntas para filtrar localmente...`);
-    
-    // Cargar TODAS las preguntas y filtrar
-    db.collection('questions').get()
-        .then(querySnapshot => {
-            const todasLasPreguntas = [];
+        function selectQuestion(questionSet) {
+            console.log(`🎯 Cargando todas las preguntas para filtrar localmente...`);
             
-            querySnapshot.forEach(doc => {
-                const data = doc.data();
-                todasLasPreguntas.push({ id: doc.id, ...data });
-            });
-            
-            console.log(`📚 Total de preguntas cargadas: ${todasLasPreguntas.length}`);
-            
-            // Filtrar localmente - CORREGIDO PARA MANEJAR AMBOS CAMPOS
-            const preguntasFiltradas = todasLasPreguntas.filter(pregunta => {
-                // Comparar estación (múltiples formatos)
-                const stationMatch = 
-                    pregunta.station == currentStation || 
-                    pregunta.station === currentStation ||
-                    String(pregunta.station) === String(currentStation);
-                
-                // IMPORTANTE: Verificar AMBOS campos - questionSet Y questioned
-                const tieneQuestionSet = pregunta.questionSet !== undefined;
-                const tieneQuestioned = pregunta.questioned !== undefined;
-                
-                let setMatch = false;
-                
-                if (tieneQuestionSet) {
-                    setMatch = 
-                        pregunta.questionSet == questionSet || 
-                        pregunta.questionSet === questionSet ||
-                        String(pregunta.questionSet) === String(questionSet);
-                }
-                
-                if (!setMatch && tieneQuestioned) {
-                    setMatch = 
-                        pregunta.questioned == questionSet || 
-                        pregunta.questioned === questionSet ||
-                        String(pregunta.questioned) === String(questionSet);
-                }
-                
-                return stationMatch && setMatch;
-            });
-            
-            console.log(`🎯 Preguntas filtradas: ${preguntasFiltradas.length}`);
-            
-            if (preguntasFiltradas.length > 0) {
-                const randomIndex = Math.floor(Math.random() * preguntasFiltradas.length);
-                currentQuestion = preguntasFiltradas[randomIndex];
-                console.log('✅ Pregunta seleccionada:', currentQuestion);
-                showQuestionScreen();
-            } else {
-                console.error('❌ No hay preguntas después del filtrado');
-                // Mostrar diagnóstico detallado
-                console.log('🔍 Diagnóstico detallado:');
-                const preguntasEstacion = todasLasPreguntas.filter(p => 
-                    p.station == currentStation || 
-                    p.station === currentStation ||
-                    String(p.station) === String(currentStation)
-                );
-                console.log(`Preguntas en estación ${currentStation}:`, preguntasEstacion.length);
-                preguntasEstacion.forEach(p => {
-                    console.log(`- ID: ${p.id}, questionSet: ${p.questionSet}, questioned: ${p.questioned}`);
+            // Cargar TODAS las preguntas y filtrar
+            db.collection('questions').get()
+                .then(querySnapshot => {
+                    const todasLasPreguntas = [];
+                    
+                    querySnapshot.forEach(doc => {
+                        const data = doc.data();
+                        todasLasPreguntas.push({ id: doc.id, ...data });
+                    });
+                    
+                    console.log(`📚 Total de preguntas cargadas: ${todasLasPreguntas.length}`);
+                    
+                    // Filtrar localmente - CORREGIDO PARA MANEJAR AMBOS CAMPOS
+                    const preguntasFiltradas = todasLasPreguntas.filter(pregunta => {
+                        // Comparar estación (múltiples formatos)
+                        const stationMatch = 
+                            pregunta.station == currentStation || 
+                            pregunta.station === currentStation ||
+                            String(pregunta.station) === String(currentStation);
+                        
+                        // IMPORTANTE: Verificar AMBOS campos - questionSet Y questioned
+                        const tieneQuestionSet = pregunta.questionSet !== undefined;
+                        const tieneQuestioned = pregunta.questioned !== undefined;
+                        
+                        let setMatch = false;
+                        
+                        if (tieneQuestionSet) {
+                            setMatch = 
+                                pregunta.questionSet == questionSet || 
+                                pregunta.questionSet === questionSet ||
+                                String(pregunta.questionSet) === String(questionSet);
+                        }
+                        
+                        if (!setMatch && tieneQuestioned) {
+                            setMatch = 
+                                pregunta.questioned == questionSet || 
+                                pregunta.questioned === questionSet ||
+                                String(pregunta.questioned) === String(questionSet);
+                        }
+                        
+                        return stationMatch && setMatch;
+                    });
+                    
+                    console.log(`🎯 Preguntas filtradas: ${preguntasFiltradas.length}`);
+                    
+                    if (preguntasFiltradas.length > 0) {
+                        const randomIndex = Math.floor(Math.random() * preguntasFiltradas.length);
+                        currentQuestion = preguntasFiltradas[randomIndex];
+                        console.log('✅ Pregunta seleccionada:', currentQuestion);
+                        showQuestionScreen();
+                    } else {
+                        console.error('❌ No hay preguntas después del filtrado');
+                        alert(`No hay preguntas para la estación ${currentStation}, set ${questionSet}. Contacta al administrador.`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error cargando preguntas:', error);
+                    alert('Error de conexión al cargar las preguntas.');
                 });
-                
-                alert(`No hay preguntas para la estación ${currentStation}, set ${questionSet}. Contacta al administrador.`);
-            }
-        })
-        .catch(error => {
-            console.error('Error cargando preguntas:', error);
-            alert('Error de conexión al cargar las preguntas.');
-        });
-}
+        }
 
         function showQuestionScreen() {
-    hideAllScreens();
-    questionScreen.classList.remove('hidden');
-    questionStation.textContent = currentStation;
-    
-    // Validar que currentQuestion existe y tiene los campos necesarios
-    if (!currentQuestion || !currentQuestion.text) {
-        alert('Error: La pregunta no se cargó correctamente.');
-        showQuestionSelection();
-        return;
-    }
-    
-    questionText.textContent = currentQuestion.text;
-    
-    // Mostrar opciones con validación
-    optionsContainer.innerHTML = '';
-    
-    if (currentQuestion.options && Array.isArray(currentQuestion.options) && currentQuestion.options.length >= 4) {
-        currentQuestion.options.forEach((option, index) => {
-            const optionElement = document.createElement('div');
-            optionElement.className = 'option';
-            optionElement.textContent = option || `Opción ${index + 1}`;
-            optionElement.addEventListener('click', () => selectOption(optionElement, index));
-            optionsContainer.appendChild(optionElement);
-        });
-    } else {
-        console.error('Las opciones de la pregunta no están definidas correctamente:', currentQuestion);
-        alert('Error: La pregunta no tiene opciones válidas.');
-        showQuestionSelection();
-        return;
-    }
-    
-    selectedOption = null;
-}
+            hideAllScreens();
+            questionScreen.classList.remove('hidden');
+            questionStation.textContent = currentStation;
+            
+            // Validar que currentQuestion existe y tiene los campos necesarios
+            if (!currentQuestion || !currentQuestion.text) {
+                alert('Error: La pregunta no se cargó correctamente.');
+                showQuestionSelection();
+                return;
+            }
+            
+            questionText.textContent = currentQuestion.text;
+            
+            // Mostrar opciones con validación
+            optionsContainer.innerHTML = '';
+            
+            if (currentQuestion.options && Array.isArray(currentQuestion.options) && currentQuestion.options.length >= 4) {
+                currentQuestion.options.forEach((option, index) => {
+                    const optionElement = document.createElement('div');
+                    optionElement.className = 'option';
+                    optionElement.textContent = option || `Opción ${index + 1}`;
+                    optionElement.addEventListener('click', () => selectOption(optionElement, index));
+                    optionsContainer.appendChild(optionElement);
+                });
+            } else {
+                console.error('Las opciones de la pregunta no están definidas correctamente:', currentQuestion);
+                alert('Error: La pregunta no tiene opciones válidas.');
+                showQuestionSelection();
+                return;
+            }
+            
+            selectedOption = null;
+        }
 
         function selectOption(optionElement, index) {
             // Deseleccionar opción anterior si existe
@@ -666,17 +1088,6 @@ function selectQuestion(questionSet) {
         function handleAnswerSubmission() {
             if (selectedOption === null) {
                 alert('Por favor selecciona una opción');
-                return;
-            }
-            
-            // Verificar si es simulación de administrador
-            if (isAdminSimulation) {
-                const isCorrect = selectedOption === currentQuestion.correctAnswer;
-                alert(`Simulación de Administrador\n\nTu respuesta: Opción ${selectedOption + 1}\nRespuesta correcta: Opción ${currentQuestion.correctAnswer + 1}\n\nResultado: ${isCorrect ? '✓ CORRECTO' : '✗ INCORRECTO'}`);
-                
-                // Regresar al panel de administración
-                isAdminSimulation = false;
-                showAdminPanel();
                 return;
             }
             
@@ -746,7 +1157,6 @@ function selectQuestion(questionSet) {
 
         function showRegistrationMessage(message, type) {
             registrationMessage.textContent = message;
-            registrationMessage.className = '';
             registrationMessage.style.backgroundColor = type === 'error' ? '#ffebee' : '#e8f5e8';
             registrationMessage.style.color = type === 'error' ? '#c62828' : '#2e7d32';
             registrationMessage.style.border = type === 'error' ? '1px solid #f44336' : '1px solid #4caf50';
@@ -797,36 +1207,15 @@ function selectQuestion(questionSet) {
             
             hideAllScreens();
             adminPanel.classList.remove('hidden');
+            
+            // Generar links automáticamente al entrar al panel
+            generateStationLinks();
         }
 
         function logoutAdminPanel() {
             adminAuthenticated = false;
             hideAllScreens();
             welcomeScreen.classList.remove('hidden');
-        }
-
-        function startGlobalTimer() {
-            startTime = new Date();
-            
-            // Actualizar tiempo en todos los equipos
-            db.collection('teams').get()
-                .then(querySnapshot => {
-                    const batch = db.batch();
-                    querySnapshot.forEach(doc => {
-                        const teamRef = db.collection('teams').doc(doc.id);
-                        batch.update(teamRef, {
-                            startTime: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                    });
-                    return batch.commit();
-                })
-                .then(() => {
-                    alert('Cronómetro iniciado para todos los equipos');
-                })
-                .catch(error => {
-                    console.error('Error iniciando cronómetro:', error);
-                    alert('Error al iniciar el cronómetro');
-                });
         }
 
         function resetRallyData() {
@@ -853,44 +1242,6 @@ function selectQuestion(questionSet) {
                         console.error('Error reiniciando datos:', error);
                         alert('Error al reiniciar los datos');
                     });
-            }
-        }
-
-        // Función para simulación de estaciones por administrador
-        function simulateStation(stationNumber) {
-            currentStation = stationNumber;
-            isAdminSimulation = true;
-            showQuestionSelection();
-        }
-
-        function generateAllQRs() {
-            qrContainer.innerHTML = 'https://geovannydelatorre.github.io/WebRallyITO/';
-            
-            // Generar QR para cada estación
-            for (let i = 1; i <= 10; i++) {
-                const qrItem = document.createElement('div');
-                qrItem.className = 'qr-item';
-                
-                const qrTitle = document.createElement('h4');
-                qrTitle.textContent = `Estación ${i}`;
-                qrItem.appendChild(qrTitle);
-                
-                const qrCode = document.createElement('div');
-                qrCode.className = 'qr-code';
-                qrCode.id = `qr-station-${i}`;
-                qrItem.appendChild(qrCode);
-                
-                qrContainer.appendChild(qrItem);
-                
-                // Generar código QR
-                const url = `${window.location.origin}${window.location.pathname}?station=${i}`;
-                QRCode.toCanvas(document.getElementById(`qr-station-${i}`), url, {
-                    width: 150,
-                    height: 150,
-                    margin: 1
-                }, function(error) {
-                    if (error) console.error(error);
-                });
             }
         }
 
@@ -977,14 +1328,19 @@ function selectQuestion(questionSet) {
                 questionScreen,
                 teamRegistration,
                 confirmationScreen,
+                finishScreen,
                 adminLogin,
-                adminPanel
+                adminPanel,
+                teacherPanel
             ];
             
             screens.forEach(screen => {
                 screen.classList.add('hidden');
             });
         }
+
+        // Inicializar el cronómetro en el admin
+        updateTimerDisplay();
     </script>
 </body>
 </html>
