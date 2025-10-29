@@ -272,6 +272,20 @@
             overflow-y: auto;
         }
         
+        .team-management-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .team-management-form .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .team-management-form .full-width {
+            grid-column: 1 / -1;
+        }
+        
         @media (max-width: 768px) {
             .cards-container {
                 flex-direction: column;
@@ -289,6 +303,10 @@
             
             .card {
                 padding: 15px;
+            }
+            
+            .team-management-form {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -446,15 +464,31 @@
                 <button id="manage-teams" class="btn">Gestionar Equipos</button>
                 <div id="teams-management" class="hidden">
                     <h4>Agregar/Editar Equipo</h4>
-                    <div class="form-group">
-                        <label for="team-id">Número de Equipo</label>
-                        <input type="number" id="team-id" min="1">
-                    </div>
-                    <div class="form-group">
-                        <label for="team-key-input">Clave del Equipo</label>
-                        <input type="text" id="team-key-input">
+                    <div class="team-management-form">
+                        <div class="form-group">
+                            <label for="team-id">Número de Equipo</label>
+                            <input type="number" id="team-id" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="team-key-input">Clave del Equipo</label>
+                            <input type="text" id="team-key-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="team-completed">Completado</label>
+                            <input type="checkbox" id="team-completed">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Información actual del equipo:</label>
+                            <div id="team-info">
+                                <p>Start Time: <span id="team-start-time">No establecido</span></p>
+                                <p>Finish Time: <span id="team-finish-time">No establecido</span></p>
+                                <p>Respuestas: <span id="team-answers-count">0</span></p>
+                            </div>
+                        </div>
                     </div>
                     <button id="save-team" class="btn">Guardar Equipo</button>
+                    <button id="reset-team-times" class="btn">Resetear Tiempos</button>
+                    <button id="reset-team-answers" class="btn">Resetear Respuestas</button>
                     <button id="delete-team" class="btn btn-danger">Eliminar Equipo</button>
                     <h4>Lista de Equipos</h4>
                     <table id="teams-table">
@@ -462,6 +496,7 @@
                             <tr>
                                 <th>Número</th>
                                 <th>Clave</th>
+                                <th>Completado</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -474,7 +509,8 @@
 
             <div class="admin-panel">
                 <h3>Vista de Docentes</h3>
-                <button id="view-teacher" class="btn">Acceder a Vista de Docentes</button>
+                <p>Acceso a la vista de seguimiento de equipos:</p>
+                <p id="teacher-link" class="link-display"></p>
             </div>
         </div>
 
@@ -511,7 +547,7 @@
         // Configuración de Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyD9ZkSYVakAuPWIAfgDB3EAqpgUJkrkPRo",
-            authDomain: "webrallyito.firebaseapp.com",
+            authDomain: "webrallyito.firebasestorage.app",
             projectId: "webrallyito",
             storageBucket: "webrallyito.firebasestorage.app",
             messagingSenderId: "469749169879",
@@ -529,7 +565,14 @@
         let selectedOption = null;
         let teamAnswers = {};
         let adminAuthenticated = false;
-        let stationKeys = {}; // Mapeo de estación a clave
+        
+        // Claves estáticas para las estaciones
+        const stationKeys = [
+            'aB3dEfG7', 'hI8jKlmN', 'oP9qRsT0', 'uV1wXyZ2', 
+            'bC4eFgH5', 'iJ6kLmN7', 'pQ8rStU9', 'vW0xYzA1',
+            'cD5fGhI8', 'jK7lMnO9'
+        ];
+        
         let globalTimer = null; // Cronómetro global
         let timerRunning = false;
         let timerStart = null;
@@ -576,16 +619,19 @@
         const linksConcatenated = document.getElementById('links-concatenated');
         const linksString = document.getElementById('links-string');
         const finishLink = document.getElementById('finish-link');
+        const teacherLink = document.getElementById('teacher-link');
         const viewResults = document.getElementById('view-results');
         const resultsTable = document.getElementById('results-table');
         const manageTeams = document.getElementById('manage-teams');
         const teamsManagement = document.getElementById('teams-management');
         const teamIdInput = document.getElementById('team-id');
         const teamKeyInputManagement = document.getElementById('team-key-input');
+        const teamCompleted = document.getElementById('team-completed');
         const saveTeam = document.getElementById('save-team');
+        const resetTeamTimes = document.getElementById('reset-team-times');
+        const resetTeamAnswers = document.getElementById('reset-team-answers');
         const deleteTeamBtn = document.getElementById('delete-team');
         const teamsTable = document.getElementById('teams-table');
-        const viewTeacher = document.getElementById('view-teacher');
         const refreshTeacher = document.getElementById('refresh-teacher');
         const backToAdminFromTeacher = document.getElementById('back-to-admin-from-teacher');
         const teacherTable = document.getElementById('teacher-table');
@@ -607,16 +653,28 @@
         viewResults.addEventListener('click', showResults);
         manageTeams.addEventListener('click', showTeamsManagement);
         saveTeam.addEventListener('click', saveTeamData);
+        resetTeamTimes.addEventListener('click', resetTeamTimesData);
+        resetTeamAnswers.addEventListener('click', resetTeamAnswersData);
         deleteTeamBtn.addEventListener('click', deleteTeamData);
-        viewTeacher.addEventListener('click', showTeacherPanel);
         refreshTeacher.addEventListener('click', refreshTeacherData);
         backToAdminFromTeacher.addEventListener('click', backToAdminFromTeacherPanel);
+
+        // Obtener estación desde la clave
+        function getStationFromKey(key) {
+            for (let i = 0; i < stationKeys.length; i++) {
+                if (stationKeys[i] === key) {
+                    return i + 1;
+                }
+            }
+            return null;
+        }
 
         // Verificar parámetros de URL al cargar la página
         window.addEventListener('load', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const stationKey = urlParams.get('s');
             const finish = urlParams.get('finish');
+            const teacher = urlParams.get('teacher');
 
             if (stationKey) {
                 // Buscar la estación correspondiente a la clave
@@ -629,47 +687,19 @@
                 }
             } else if (finish) {
                 showFinishScreen();
+            } else if (teacher) {
+                showTeacherPanel();
             }
         });
 
-        // Función para generar una clave aleatoria
-        function generateRandomKey(length = 8) {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            let result = '';
-            for (let i = 0; i < length; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
-        }
-
-        // Generar claves para las estaciones
-        function generateStationKeys() {
-            stationKeys = {};
-            for (let i = 1; i <= 10; i++) {
-                stationKeys[i] = generateRandomKey();
-            }
-            return stationKeys;
-        }
-
-        // Obtener estación desde la clave
-        function getStationFromKey(key) {
-            for (const [station, stationKey] of Object.entries(stationKeys)) {
-                if (stationKey === key) {
-                    return parseInt(station);
-                }
-            }
-            return null;
-        }
-
         // Generar links de estaciones
         function generateStationLinks() {
-            const keys = generateStationKeys();
             const baseUrl = window.location.origin + window.location.pathname;
             linksTableBody.innerHTML = '';
             let allLinks = [];
 
             for (let i = 1; i <= 10; i++) {
-                const key = keys[i];
+                const key = stationKeys[i-1];
                 const link = `${baseUrl}?s=${key}`;
                 allLinks.push(link);
 
@@ -685,6 +715,7 @@
             linksConcatenated.classList.remove('hidden');
             linksString.textContent = allLinks.join(',');
             finishLink.textContent = `${baseUrl}?finish=true`;
+            teacherLink.textContent = `${baseUrl}?teacher=true`;
         }
 
         // Cronómetro global
@@ -813,8 +844,9 @@
                         row.innerHTML = `
                             <td>${doc.id}</td>
                             <td>${team.key}</td>
+                            <td>${team.completed ? 'Sí' : 'No'}</td>
                             <td>
-                                <button onclick="editTeam('${doc.id}', '${team.key}')" class="btn">Editar</button>
+                                <button onclick="editTeam('${doc.id}', '${team.key}', ${team.completed})" class="btn">Editar</button>
                             </td>
                         `;
                         tbody.appendChild(row);
@@ -825,14 +857,31 @@
                 });
         }
 
-        function editTeam(id, key) {
+        function editTeam(id, key, completed) {
             teamIdInput.value = id;
             teamKeyInputManagement.value = key;
+            teamCompleted.checked = completed;
+
+            // Cargar información adicional del equipo
+            db.collection('teams').doc(id).get()
+                .then(doc => {
+                    const team = doc.data();
+                    document.getElementById('team-start-time').textContent = 
+                        team.startTime ? team.startTime.toDate().toLocaleString() : 'No establecido';
+                    document.getElementById('team-finish-time').textContent = 
+                        team.finishTime ? team.finishTime.toDate().toLocaleString() : 'No establecido';
+                    const answersCount = team.answers ? Object.keys(team.answers).length : 0;
+                    document.getElementById('team-answers-count').textContent = answersCount;
+                })
+                .catch(error => {
+                    console.error('Error cargando detalles del equipo:', error);
+                });
         }
 
         function saveTeamData() {
             const id = teamIdInput.value;
             const key = teamKeyInputManagement.value;
+            const completed = teamCompleted.checked;
 
             if (!id || !key) {
                 alert('Por favor ingresa número y clave de equipo');
@@ -841,23 +890,71 @@
 
             const teamData = {
                 key: key,
-                answers: {},
-                startTime: null,
-                finishTime: null,
-                completed: false
+                completed: completed
+                // No sobrescribimos los tiempos y respuestas al guardar
             };
 
-            db.collection('teams').doc(id).set(teamData)
+            // Usamos set con merge: true para no sobrescribir campos que no estamos editando
+            db.collection('teams').doc(id).set(teamData, { merge: true })
                 .then(() => {
                     alert('Equipo guardado correctamente');
                     loadTeams();
-                    teamIdInput.value = '';
-                    teamKeyInputManagement.value = '';
+                    // No resetear el formulario para permitir más ediciones
                 })
                 .catch(error => {
                     console.error('Error guardando equipo:', error);
                     alert('Error al guardar el equipo');
                 });
+        }
+
+        function resetTeamTimesData() {
+            const id = teamIdInput.value;
+            if (!id) {
+                alert('Por favor ingresa un número de equipo');
+                return;
+            }
+
+            if (!confirm(`¿Estás seguro de que quieres resetear los tiempos del equipo ${id}?`)) {
+                return;
+            }
+
+            db.collection('teams').doc(id).update({
+                startTime: null,
+                finishTime: null,
+                completed: false
+            })
+            .then(() => {
+                alert('Tiempos reseteados correctamente');
+                editTeam(id, teamKeyInputManagement.value, teamCompleted.checked); // Recargar la información
+            })
+            .catch(error => {
+                console.error('Error reseteados tiempos:', error);
+                alert('Error al resetear los tiempos');
+            });
+        }
+
+        function resetTeamAnswersData() {
+            const id = teamIdInput.value;
+            if (!id) {
+                alert('Por favor ingresa un número de equipo');
+                return;
+            }
+
+            if (!confirm(`¿Estás seguro de que quieres resetear las respuestas del equipo ${id}?`)) {
+                return;
+            }
+
+            db.collection('teams').doc(id).update({
+                answers: {}
+            })
+            .then(() => {
+                alert('Respuestas reseteadas correctamente');
+                editTeam(id, teamKeyInputManagement.value, teamCompleted.checked); // Recargar la información
+            })
+            .catch(error => {
+                console.error('Error reseteados respuestas:', error);
+                alert('Error al resetear las respuestas');
+            });
         }
 
         function deleteTeamData() {
@@ -877,6 +974,10 @@
                     loadTeams();
                     teamIdInput.value = '';
                     teamKeyInputManagement.value = '';
+                    teamCompleted.checked = false;
+                    document.getElementById('team-start-time').textContent = 'No establecido';
+                    document.getElementById('team-finish-time').textContent = 'No establecido';
+                    document.getElementById('team-answers-count').textContent = '0';
                 })
                 .catch(error => {
                     console.error('Error eliminando equipo:', error);
