@@ -523,8 +523,8 @@
                 <table id="teacher-table">
                     <thead>
                         <tr>
-                            <th>Equipo</th>
                             <th>Estación</th>
+                            <th>Equipo</th>
                             <th>Pregunta</th>
                             <th>Respuesta</th>
                             <th>Correcta</th>
@@ -577,6 +577,16 @@
         let timerRunning = false;
         let timerStart = null;
         let timerValue = 0;
+
+        // Algoritmo de seguridad para la contraseña del administrador
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
+        
+        // Contraseña "Tamarindo09" codificada
+        const encodedPassword = [52, 32, 46, 32, 51, 44, 46, 41, 40, 62, 61];
+        
+        function decodePassword(encoded) {
+            return encoded.map(index => alphabet[index]).join('');
+        }
 
         // Referencias a elementos DOM
         const welcomeScreen = document.getElementById('welcome-screen');
@@ -658,6 +668,25 @@
         deleteTeamBtn.addEventListener('click', deleteTeamData);
         refreshTeacher.addEventListener('click', refreshTeacherData);
         backToAdminFromTeacher.addEventListener('click', backToAdminFromTeacherPanel);
+
+        // Medidas de seguridad para prevenir acceso al inspector
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+
+        document.addEventListener('keydown', function(e) {
+            // Prevenir F12
+            if (e.key === 'F12') {
+                e.preventDefault();
+            }
+            // Prevenir Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+            if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) {
+                e.preventDefault();
+            }
+            if (e.ctrlKey && e.key === 'u') {
+                e.preventDefault();
+            }
+        });
 
         // Obtener estación desde la clave
         function getStationFromKey(key) {
@@ -1012,8 +1041,8 @@
                                         const question = questionDoc.data();
                                         const row = document.createElement('tr');
                                         row.innerHTML = `
-                                            <td>${teamNumber}</td>
                                             <td>${station}</td>
+                                            <td>${teamNumber}</td>
                                             <td>${question.text}</td>
                                             <td>${question.options[answer.selectedOption]}</td>
                                             <td>${answer.isCorrect ? 'Sí' : 'No'}</td>
@@ -1026,8 +1055,8 @@
                                         // Crear una fila con información limitada si no se puede cargar la pregunta
                                         const row = document.createElement('tr');
                                         row.innerHTML = `
-                                            <td>${teamNumber}</td>
                                             <td>${station}</td>
+                                            <td>${teamNumber}</td>
                                             <td>Información no disponible</td>
                                             <td>Opción ${answer.selectedOption + 1}</td>
                                             <td>${answer.isCorrect ? 'Sí' : 'No'}</td>
@@ -1053,26 +1082,41 @@
             adminPanel.classList.remove('hidden');
         }
 
-        // Funciones existentes para el flujo de preguntas
+        // Funciones para el flujo de preguntas con orden aleatorio
         function showQuestionSelection() {
             hideAllScreens();
             questionSelection.classList.remove('hidden');
             stationNumber.textContent = currentStation;
             
-            // Generar 3 cartas para la estación actual
+            // Generar 3 cartas para la estación actual con orden aleatorio
             cardsContainer.innerHTML = '';
-            for (let i = 1; i <= 3; i++) {
+            
+            // Crear array con números 1, 2, 3 y mezclarlos aleatoriamente
+            const questionSets = [1, 2, 3];
+            shuffleArray(questionSets);
+            
+            for (let i = 0; i < 3; i++) {
                 const card = document.createElement('div');
                 card.className = 'card-option';
                 card.innerHTML = `
                     <div class="card-inner">
                         <div class="card-front">?</div>
-                        <div class="card-back">Pregunta ${i}</div>
+                        <div class="card-back">Pregunta ${i + 1}</div>
                     </div>
                 `;
-                card.addEventListener('click', () => selectQuestion(i));
+                // Asignar el questionSet mezclado a cada carta
+                card.addEventListener('click', () => selectQuestion(questionSets[i]));
                 cardsContainer.appendChild(card);
             }
+        }
+
+        // Función para mezclar array (algoritmo Fisher-Yates)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
         }
 
         function selectQuestion(questionSet) {
@@ -1282,8 +1326,9 @@
 
         function handleAdminLogin() {
             const password = adminPasswordInput.value;
+            const correctPassword = decodePassword(encodedPassword);
             
-            if (password === 'Tamarindo09') {
+            if (password === correctPassword) {
                 adminAuthenticated = true;
                 showAdminPanel();
             } else {
@@ -1346,6 +1391,7 @@
             }
         }
 
+        // Función showResults mejorada
         function showResults() {
             db.collection('teams').get()
                 .then(querySnapshot => {
@@ -1354,11 +1400,18 @@
                         teams.push({ id: doc.id, ...doc.data() });
                     });
                     
+                    // Obtener el tiempo de inicio global si está disponible
+                    let globalStartTime = null;
+                    if (timerStart) {
+                        globalStartTime = new Date(timerStart);
+                    }
+                    
                     // Calcular puntuación y tiempo para cada equipo
                     const results = teams.map(team => {
                         let score = 0;
                         let time = 'No completado';
                         let stationsCompleted = 0;
+                        let actualTime = 'N/A';
                         
                         if (team.answers) {
                             Object.values(team.answers).forEach(answer => {
@@ -1367,20 +1420,41 @@
                             });
                         }
                         
+                        // CÁLCULO MEJORADO DEL TIEMPO
                         if (team.startTime && team.finishTime) {
                             const start = team.startTime.toDate();
                             const finish = team.finishTime.toDate();
                             const timeDiff = finish - start;
-                            const hours = Math.floor(timeDiff / 3600000);
-                            const minutes = Math.floor((timeDiff % 3600000) / 60000);
-                            const seconds = Math.floor((timeDiff % 60000) / 1000);
+                            
+                            // Calcular horas, minutos y segundos
+                            const totalSeconds = Math.floor(timeDiff / 1000);
+                            const hours = Math.floor(totalSeconds / 3600);
+                            const minutes = Math.floor((totalSeconds % 3600) / 60);
+                            const seconds = totalSeconds % 60;
+                            
                             time = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                            actualTime = timeDiff; // Guardar para ordenamiento
+                            
+                        } else if (team.startTime && globalStartTime) {
+                            // Si el equipo inició pero no finalizó, calcular tiempo parcial
+                            const start = team.startTime.toDate();
+                            const currentTime = new Date();
+                            const timeDiff = currentTime - start;
+                            
+                            const totalSeconds = Math.floor(timeDiff / 1000);
+                            const hours = Math.floor(totalSeconds / 3600);
+                            const minutes = Math.floor((totalSeconds % 3600) / 60);
+                            const seconds = totalSeconds % 60;
+                            
+                            time = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} (En curso)`;
+                            actualTime = timeDiff;
                         }
                         
                         return {
                             team: team.id,
                             score: score,
                             time: time,
+                            actualTime: actualTime, // Para ordenamiento
                             stationsCompleted: stationsCompleted
                         };
                     });
@@ -1388,14 +1462,16 @@
                     // Ordenar por puntuación (descendente) y tiempo (ascendente)
                     results.sort((a, b) => {
                         if (a.score !== b.score) {
-                            return b.score - a.score;
+                            return b.score - a.score; // Mayor puntuación primero
                         } else {
-                            // Si el tiempo es "No completado", va al final
-                            if (a.time === 'No completado') return 1;
-                            if (b.time === 'No completado') return -1;
+                            // Si tienen la misma puntuación, ordenar por tiempo
+                            // Equipos no completados van al final
+                            if (a.actualTime === 'N/A' && b.actualTime === 'N/A') return 0;
+                            if (a.actualTime === 'N/A') return 1;
+                            if (b.actualTime === 'N/A') return -1;
                             
-                            // Comparar tiempos (menor tiempo es mejor)
-                            return a.time.localeCompare(b.time);
+                            // Menor tiempo primero
+                            return a.actualTime - b.actualTime;
                         }
                     });
                     
