@@ -518,7 +518,7 @@
         <div id="teacher-panel" class="card hidden">
             <h2>Vista de Docentes</h2>
             <button id="refresh-teacher" class="btn">Actualizar Datos</button>
-            <button id="refresh-teacher" class="btn">Actualizar Datos</button>
+            <!-- <button id="back-to-admin-from-teacher" class="btn">Volver al Panel de Administración</button> -->
             <div class="teacher-panel">
                 <table id="teacher-table">
                     <thead>
@@ -635,7 +635,7 @@
         const deleteTeamBtn = document.getElementById('delete-team');
         const teamsTable = document.getElementById('teams-table');
         const refreshTeacher = document.getElementById('refresh-teacher');
-        const backToAdminFromTeacher = document.getElementById('back-to-admin-from-teacher');
+        //const backToAdminFromTeacher = document.getElementById('back-to-admin-from-teacher');
         const teacherTable = document.getElementById('teacher-table');
 
         // Event Listeners
@@ -659,7 +659,7 @@
         resetTeamAnswers.addEventListener('click', resetTeamAnswersData);
         deleteTeamBtn.addEventListener('click', deleteTeamData);
         refreshTeacher.addEventListener('click', refreshTeacherData);
-        backToAdminFromTeacher.addEventListener('click', backToAdminFromTeacherPanel);
+        //backToAdminFromTeacher.addEventListener('click', backToAdminFromTeacherPanel);
 
         // Medidas de seguridad para prevenir acceso al inspector
         document.addEventListener('contextmenu', function(e) {
@@ -1069,10 +1069,10 @@
                 });
         }
 
-        function backToAdminFromTeacherPanel() {
-            hideAllScreens();
-            adminPanel.classList.remove('hidden');
-        }
+        //function backToAdminFromTeacherPanel() {
+            //hideAllScreens();
+            //adminPanel.classList.remove('hidden');
+        //}
 
         // Funciones para el flujo de preguntas con orden aleatorio
         function showQuestionSelection() {
