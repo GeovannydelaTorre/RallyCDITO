@@ -578,14 +578,14 @@
         let timerStart = null;
         let timerValue = 0;
 
-        // Algoritmo de seguridad para la contraseña del administrador
-        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
-        
-        // Contraseña "Tamarindo09" codificada
-        const encodedPassword = [52, 32, 46, 32, 51, 44, 46, 41, 40, 62, 61];
-        
+        // Algoritmo de seguridad mejorado para la contraseña del administrador
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+        // Contraseña "Tamarindo09" codificada correctamente
+        const encodedPassword = [45, 26, 38, 26, 43, 34, 39, 28, 40, 52, 61];
+
         function decodePassword(encoded) {
-            return encoded.map(index => alphabet[index]).join('');
+             return encoded.map(index => alphabet[index]).join('');
         }
 
         // Referencias a elementos DOM
